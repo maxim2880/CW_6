@@ -5,7 +5,8 @@ from rest_framework.generics import get_object_or_404
 
 from ads.models import Ad, Comment
 from .filters import AdFilter
-from .serializers import AdSerializer, AdDetailSerializer, CommentSerializer
+from .permissions import IsAdmin
+from .serializers import AdSerializer, CommentSerializer
 
 
 class AdPagination(pagination.PageNumberPagination):
@@ -19,22 +20,25 @@ class AdViewSet(viewsets.ModelViewSet):
     filter_backends = (DjangoFilterBackend,)
     serializer_class = AdSerializer
 
-    def get_queryset(self):
-        if self.action == 'me':
-            return Ad.objects.filter(author=self.request.user).all()
-        return Ad.objects.all()
+    # def get_queryset(self):
+    #     if self.action == 'me':
+    #         return Ad.objects.filter(author=self.request.user).all()
+    #     return Ad.objects.all()
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'create', 'me']:
-            self.permission_classes = [permissions.IsAuthenticated]
+            self.permission_classes = [IsAdmin]
         else:
-            self.permission_classes = [permissions.IsAdminUser]
+            self.permission_classes = [IsAdmin]
         return super().get_permissions()
 
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return AdDetailSerializer
-        return AdSerializer
+    # def get_serializer_class(self):
+    #     if self.action == 'retrieve':
+    #         return AdDetailSerializer
+    #     return AdSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
     @action(detail=False, methods=['get'])
     def me(self, request, *args, **kwargs):
